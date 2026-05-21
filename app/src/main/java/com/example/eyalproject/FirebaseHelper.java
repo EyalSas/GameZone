@@ -109,7 +109,7 @@ public class FirebaseHelper {
                             })
                             .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
                 })
-                .addOnFailureListener(e -> callback.onFailure("Database connection failed."));
+                .addOnFailureListener(e -> callback.onFailure("DB Error: " + e.getMessage()));
     }
 
     /**
