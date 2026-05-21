@@ -21,6 +21,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton; // Added for the trash icon
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -387,6 +388,7 @@ public class CartFragment extends Fragment {
     private TableRow createOrderRow(FirebaseHelper.CartItem item) {
         TableRow tableRow = new TableRow(getContext());
         tableRow.setBackground(ContextCompat.getDrawable(getContext(), R.drawable.rounded_card));
+        tableRow.setGravity(Gravity.CENTER_VERTICAL); // Align the icon, price, and text vertically
 
         TableLayout.LayoutParams layoutParams = new TableLayout.LayoutParams(
                 TableLayout.LayoutParams.MATCH_PARENT,
@@ -395,29 +397,34 @@ public class CartFragment extends Fragment {
         layoutParams.setMargins(0, 0, 0, 8);
         tableRow.setLayoutParams(layoutParams);
 
+        // 1. Order Name
         TextView textViewOrderName = new TextView(getContext());
         textViewOrderName.setText(item.productName + " (x" + item.quantity + ")");
         textViewOrderName.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
         textViewOrderName.setTextSize(16);
-        textViewOrderName.setPadding(16, 20, 16, 20);
+        textViewOrderName.setPadding(16, 20, 8, 20);
         textViewOrderName.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 3f));
 
+        // 2. Order Price
         TextView textViewOrderPrice = new TextView(getContext());
         textViewOrderPrice.setText(String.format(Locale.getDefault(), "$%.2f", item.price * item.quantity));
         textViewOrderPrice.setTextColor(ContextCompat.getColor(getContext(), R.color.primary_color));
         textViewOrderPrice.setTextSize(16);
         textViewOrderPrice.setTypeface(null, Typeface.BOLD);
-        textViewOrderPrice.setPadding(16, 20, 16, 20);
+        textViewOrderPrice.setPadding(8, 20, 8, 20);
         textViewOrderPrice.setGravity(Gravity.CENTER);
-        textViewOrderPrice.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f));
+        textViewOrderPrice.setSingleLine(true);
+        textViewOrderPrice.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1.2f));
 
-        Button btnRemoveItem = new Button(getContext());
-        btnRemoveItem.setText("Remove");
-        btnRemoveItem.setTextSize(12);
-        btnRemoveItem.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.error));
-        btnRemoveItem.setTextColor(Color.WHITE);
-        btnRemoveItem.setPadding(16, 8, 16, 8);
-        btnRemoveItem.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f));
+        // 3. Remove Item Icon Button (Trash Can)
+        ImageButton btnRemoveItem = new ImageButton(getContext());
+        btnRemoveItem.setImageResource(android.R.drawable.ic_menu_delete); // Built-in Android trash icon
+        btnRemoveItem.setBackgroundColor(Color.TRANSPARENT); // Remove the boxy background
+        btnRemoveItem.setColorFilter(ContextCompat.getColor(getContext(), R.color.error)); // Tint to red
+        btnRemoveItem.setPadding(8, 20, 16, 20);
+
+        // Use a smaller layout weight (0.8f) so it takes up less space than the text
+        btnRemoveItem.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.8f));
 
         btnRemoveItem.setOnClickListener(v -> {
             fbHelper.deleteCartItem(item.documentId, new FirebaseHelper.ActionCallback() {
