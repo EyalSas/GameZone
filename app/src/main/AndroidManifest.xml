@@ -1,12 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Main AndroidManifest file for the GameZone application.
+    This file defines:
+    - Application permissions
+    - Activities
+    - Broadcast receivers
+    - App metadata
+-->
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Allows the app to access the internet -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Allows precise location access using GPS -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- Allows approximate location access -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Allows the app to send notifications  -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Allows scheduling exact alarms -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!-- Allows using exact alarms for reminders -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
@@ -21,37 +42,76 @@
         android:theme="@style/Theme.EyalProject"
         tools:targetApi="31">
 
+        <!--
+            Login screen activity.
+            Handles user authentication.
+        -->
         <activity
             android:name=".LoginActivity"
             android:exported="false" />
+
+        <!--
+            Welcome screen shown after successful login/register.
+        -->
         <activity
             android:name=".WelcomeActivity"
-            android:exported="false"/>
+            android:exported="false" />
+
+        <!--
+            User registration activity.
+            Allows creating a new account.
+        -->
         <activity
             android:name=".RegisterActivity"
-            android:exported="false"/>
+            android:exported="false" />
+
+        <!--
+            Main application activity.
+            Contains the primary app functionality.
+        -->
         <activity
             android:name=".MainActivity"
-            android:exported="false"/>
+            android:exported="false" />
+
+        <!--
+            Splash screen activity.
+            This is the launcher activity that starts when the app opens.
+        -->
         <activity
             android:name=".SplashScreenActivity"
             android:exported="true">
+
+            <!-- Defines this activity as the app launcher -->
             <intent-filter>
+
+                <!-- Main entry point -->
                 <action android:name="android.intent.action.MAIN" />
+
+                <!-- Makes the app appear in the launcher -->
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            BroadcastReceiver used for purchase/cart reminders.
+            Triggered when a purchase confirmation action is broadcast.
+        -->
         <receiver
             android:name=".ui.cart.CartReminderReceiver"
             android:enabled="true"
             android:exported="false">
+
             <intent-filter>
+                <!-- Custom broadcast action -->
                 <action android:name="PURCHASE_CONFIRMATION" />
             </intent-filter>
         </receiver>
+
+        <!-- Google Maps API key metadata. Used for location and map-related services.-->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAb329ZpH9G-mK-zEfR7YN-EyqTxCQ3nog" />
+
     </application>
 
 </manifest>

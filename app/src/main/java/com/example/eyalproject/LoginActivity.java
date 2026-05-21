@@ -40,9 +40,7 @@ public class LoginActivity extends AppCompatActivity {
 
         initializeViews();
         firebaseHelper = new FirebaseHelper();
-
         buttonLogin.setOnClickListener(v -> validateAndLogin());
-
         buttonRegister.setOnClickListener(v -> {
             Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);

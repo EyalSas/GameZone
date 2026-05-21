@@ -35,15 +35,11 @@ public class AboutFragment extends Fragment implements OnMapReadyCallback {
 
     private MapView mapView;
     private GoogleMap googleMap;
-
     private RecyclerView storesRecyclerView;
     private FloatingActionButton toggleFab;
-
     private List<Place> gameStores;
-    private StoreAdapter storeAdapter;
-
+    private PlaceAdapter placeAdapter;
     private boolean showingMap = false;
-
     private Map<String, Marker> markerMap = new HashMap<>();
 
     /**
@@ -65,7 +61,6 @@ public class AboutFragment extends Fragment implements OnMapReadyCallback {
         setupRecyclerView();
 
         toggleFab.setOnClickListener(v -> toggleView());
-
         if (mapView != null) {
             mapView.onCreate(savedInstanceState);
             mapView.getMapAsync(this);
@@ -109,8 +104,8 @@ public class AboutFragment extends Fragment implements OnMapReadyCallback {
      */
     private void setupRecyclerView() {
         storesRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        storeAdapter = new StoreAdapter(gameStores, store -> focusOnStore(store));
-        storesRecyclerView.setAdapter(storeAdapter);
+        placeAdapter = new PlaceAdapter(gameStores, this::focusOnStore);
+        storesRecyclerView.setAdapter(placeAdapter);
     }
 
     /**
@@ -140,9 +135,7 @@ public class AboutFragment extends Fragment implements OnMapReadyCallback {
      */
     private void addStoreMarkers() {
         if (googleMap == null) return;
-
         markerMap.clear();
-
         for (Place store : gameStores) {
             LatLng storeLocation = new LatLng(store.getLatitude(), store.getLongitude());
 

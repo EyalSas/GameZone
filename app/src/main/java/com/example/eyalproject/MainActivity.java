@@ -40,10 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private String username;
     private String email;
     private NavController navController;
-
     private FirebaseHelper fbHelper;
     private PopupWindow profilePopupWindow;
-
     private static final String PREFS_NAME = "AppPrefs";
 
     /**
@@ -77,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
         BottomNavigationView navView = findViewById(R.id.nav_view);
 
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
@@ -118,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
 
                         TextView text = layout.findViewById(R.id.toast_text);
                         text.setText("Cart is empty");
-
                         Toast toast = new Toast(getApplicationContext());
                         toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
                         toast.setDuration(Toast.LENGTH_SHORT);
@@ -140,6 +136,7 @@ public class MainActivity extends AppCompatActivity {
             navController.navigate(itemId, null, navOptions);
             return true;
         });
+        //migrateProductsToFirebase();
     }
 
     /**
@@ -204,7 +201,6 @@ public class MainActivity extends AppCompatActivity {
     public boolean onSupportNavigateUp() {
         return navController.navigateUp() || super.onSupportNavigateUp();
     }
-
     /**
      * Displays a customized profile dropdown using a PopupWindow. Binds user details
      * and provides a logout interaction.
@@ -215,7 +211,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         View dropdownView = getLayoutInflater().inflate(R.layout.profile_dropdown, null);
-
         TextView tvUsername = dropdownView.findViewById(R.id.tvDropdownUsername);
         TextView tvEmail = dropdownView.findViewById(R.id.tvDropdownEmail);
         Button btnLogout = dropdownView.findViewById(R.id.btnDropdownLogout);
@@ -223,8 +218,7 @@ public class MainActivity extends AppCompatActivity {
         tvUsername.setText(username);
         tvEmail.setText(email != null ? email : "Not available");
 
-        profilePopupWindow = new PopupWindow(
-                dropdownView,
+        profilePopupWindow = new PopupWindow(dropdownView,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 true
@@ -259,7 +253,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
     /**
      * Helper utility to convert density-independent pixels (dp) to absolute pixels (px).
      *

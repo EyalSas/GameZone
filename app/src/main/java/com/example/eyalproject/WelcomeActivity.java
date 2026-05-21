@@ -20,16 +20,13 @@ public class WelcomeActivity extends AppCompatActivity {
      * Inflates the layout bindings and executes setup methods on initial creation.
      *
      * @param savedInstanceState If the activity is being re-initialized after previously being
-     * shut down then this Bundle contains the data it most recently
-     * supplied.
+     * shut down then this Bundle contains the data it most recently supplied.
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         binding = ActivityWelcomeBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
         setupClickListeners();
     }
 
@@ -38,20 +35,13 @@ public class WelcomeActivity extends AppCompatActivity {
      * to explicitly launch the intended Register or Login activity intents.
      */
     private void setupClickListeners() {
-        binding.registerButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(WelcomeActivity.this, RegisterActivity.class);
-                startActivity(intent);
-            }
+        binding.registerButton.setOnClickListener(v -> {
+            Intent intent = new Intent(WelcomeActivity.this, RegisterActivity.class);
+            startActivity(intent);
         });
-
-        binding.signInText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(WelcomeActivity.this, LoginActivity.class);
-                startActivity(intent);
-            }
+        binding.signInText.setOnClickListener(v -> {
+            Intent intent = new Intent(WelcomeActivity.this, LoginActivity.class);
+            startActivity(intent);
         });
     }
 

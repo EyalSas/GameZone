@@ -12,6 +12,8 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.ScaleAnimation;
+import java.util.Collections;
+import java.util.List;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -24,6 +26,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
+import com.example.eyalproject.FirebaseHelper;
 import com.example.eyalproject.MainActivity;
 import com.example.eyalproject.R;
 import com.google.android.material.button.MaterialButton;
@@ -42,11 +45,16 @@ import java.util.Locale;
  */
 public class HomeFragment extends Fragment {
 
+    // Navigation and Action Buttons
     private MaterialButton buttonAbout, buttonFeatures, buttonContact;
-    private TextView welcomeText, subtitleText, statsValue1, statsValue2, statsValue3;
-    private MaterialCardView statsCard1, statsCard2, statsCard3, logoCard;
-    private LinearProgressIndicator loadingProgress;
-    private ImageView logoImage;
+
+    // Text elements for titles and statistics
+    private TextView  statsValue1, statsValue2, statsValue3;
+
+    // Cards acting as containers for statistics and the main logo
+    private MaterialCardView statsCard1, statsCard2, statsCard3;
+
+    // Handler used to manage delayed tasks and animation timings
     private Handler animationHandler = new Handler();
 
     /**
@@ -60,35 +68,42 @@ public class HomeFragment extends Fragment {
      */
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // Inflate the layout for this fragment, creating the view hierarchy
         View rootView = inflater.inflate(R.layout.fragment_home, container, false);
 
+        // Bind the UI elements from the XML to the local variables
         initializeViews(rootView);
+
+        // Setup all the click behaviors for buttons and cards
         setupClickListeners();
+
+        // Begin the sequence of entrance animations for a smooth user experience
         startAnimations();
 
+        // Return the fully initialized view to be displayed on screen
         return rootView;
     }
 
     /**
      * Binds local variables to their respective views declared in the XML layout.
      *
-     * @param rootView The root view hierarchy of the fragment.
+     * @param rootView The root view hierarchy of the fragment used to find child views.
      */
     private void initializeViews(View rootView) {
+        // Find and assign navigation buttons
         buttonAbout = rootView.findViewById(R.id.buttonAbout);
         buttonFeatures = rootView.findViewById(R.id.buttonFeatures);
         buttonContact = rootView.findViewById(R.id.buttonContact);
-        welcomeText = rootView.findViewById(R.id.welcomeText);
-        subtitleText = rootView.findViewById(R.id.subtitleText);
+
+        // Find and assign text views
         statsValue1 = rootView.findViewById(R.id.statsValue1);
         statsValue2 = rootView.findViewById(R.id.statsValue2);
         statsValue3 = rootView.findViewById(R.id.statsValue3);
+
+        // Find and assign material card views
         statsCard1 = rootView.findViewById(R.id.statsCard1);
         statsCard2 = rootView.findViewById(R.id.statsCard2);
         statsCard3 = rootView.findViewById(R.id.statsCard3);
-        loadingProgress = rootView.findViewById(R.id.loadingProgress);
-        logoImage = rootView.findViewById(R.id.logoImage);
-        logoCard = rootView.findViewById(R.id.logoCard);
     }
 
     /**
@@ -96,24 +111,27 @@ public class HomeFragment extends Fragment {
      * their click feedback animations.
      */
     private void setupClickListeners() {
+        // Handle "About" button click: animate and navigate to the About Fragment
         buttonAbout.setOnClickListener(v -> {
-            showLoadingProgress();
             animateModernButtonClick(v, () -> {
-                hideLoadingProgress();
+                // Uses Navigation to move to the designated destination
                 Navigation.findNavController(v).navigate(R.id.action_navigation_home_to_aboutFragment);
             });
         });
 
+        // Handle "Features" button click: animate and open the product carousel popup
         buttonFeatures.setOnClickListener(v -> {
             animateModernButtonClick(v, this::showRandomProductCarousel);
         });
 
+        // Handle "Contact" button click: animate and navigate to the Service Fragment
         buttonContact.setOnClickListener(v -> {
             animateModernButtonClick(v, () -> {
                 Navigation.findNavController(v).navigate(R.id.navigation_service);
             });
         });
 
+        // Initialize click listeners specifically for the statistics cards
         setupStatsCardsInteractions();
     }
 
@@ -122,6 +140,7 @@ public class HomeFragment extends Fragment {
      * displaying custom designed toasts with descriptive information when tapped.
      */
     private void setupStatsCardsInteractions() {
+        // Interaction for the First Stat Card (Stores)
         statsCard1.setOnClickListener(v -> {
             animateStatsCardClick(v, () -> showDesignedToast(
                     "📍 9 Stores Nationwide",
@@ -131,6 +150,7 @@ public class HomeFragment extends Fragment {
             ));
         });
 
+        // Interaction for the Second Stat Card (Products)
         statsCard2.setOnClickListener(v -> {
             animateStatsCardClick(v, () -> showDesignedToast(
                     "🎮 170+ Products Available",
@@ -140,6 +160,7 @@ public class HomeFragment extends Fragment {
             ));
         });
 
+        // Interaction for the Third Stat Card (Support)
         statsCard3.setOnClickListener(v -> {
             animateStatsCardClick(v, () -> showDesignedToast(
                     "🛡️ 24/7 Support",
@@ -157,17 +178,19 @@ public class HomeFragment extends Fragment {
      * @param action A runnable to execute immediately after the animation completes.
      */
     private void animateStatsCardClick(View v, Runnable action) {
+        // Step 1: Scale down slightly to simulate pressing the card
         v.animate()
                 .scaleX(0.95f)
                 .scaleY(0.95f)
                 .setDuration(100)
                 .withEndAction(() -> {
+                    // Step 2: Scale back to original size (release)
                     v.animate()
                             .scaleX(1f)
                             .scaleY(1f)
                             .setDuration(150)
                             .setInterpolator(new AccelerateDecelerateInterpolator())
-                            .withEndAction(action)
+                            .withEndAction(action) // Trigger the provided action (e.g., showing the toast)
                             .start();
                 })
                 .start();
@@ -183,34 +206,41 @@ public class HomeFragment extends Fragment {
      * @param iconRes  The resource ID for the icon to display.
      */
     private void showDesignedToast(String title, String message, int colorRes, int iconRes) {
+        // Prevent crashes if the fragment is not attached to a context
         if (getContext() == null) return;
 
         try {
+            // Inflate the custom XML layout specifically for this toast
             LayoutInflater inflater = getLayoutInflater();
             View layout = inflater.inflate(R.layout.custom_toast_layout, null);
 
+            // Retrieve the views inside the custom layout
             MaterialCardView toastCard = layout.findViewById(R.id.toastCard);
             ImageView toastIcon = layout.findViewById(R.id.toastIcon);
             TextView toastTitle = layout.findViewById(R.id.toastTitle);
             TextView toastMessage = layout.findViewById(R.id.toastMessage);
 
+            // Apply the requested styling and text data
             int color = ContextCompat.getColor(requireContext(), colorRes);
             toastCard.setCardBackgroundColor(color);
-
             toastTitle.setText(title);
             toastMessage.setText(message);
             toastIcon.setImageResource(iconRes);
 
+            // Build the Toast object and attach the custom layout
             Toast toast = new Toast(requireContext());
             toast.setDuration(Toast.LENGTH_LONG);
             toast.setView(layout);
+
+            // Center the toast on the screen
             toast.setGravity(Gravity.CENTER, 0, 0);
 
+            // Prepare the view for a custom fade-in and slide-up animation
             layout.setAlpha(0f);
             layout.setTranslationY(-50f);
 
+            // Show the toast, then immediately animate the view inside it
             toast.show();
-
             layout.animate()
                     .alpha(1f)
                     .translationY(0f)
@@ -218,6 +248,7 @@ public class HomeFragment extends Fragment {
                     .start();
 
         } catch (Exception e) {
+            // Fallback: If custom layout inflation fails, show a simple text toast
             showSimpleToast(title + ": " + message);
         }
     }
@@ -236,11 +267,12 @@ public class HomeFragment extends Fragment {
      * on the home screen to create a cohesive loading experience.
      */
     private void startAnimations() {
-        animateLogoEntrance();
+        // Start counting animations on the stat cards immediately
         loadStaticStats();
-        new Handler().postDelayed(this::loadServiceStats, 500);
+
+        // Delay the entrance of the layout elements (cards and buttons) by 800ms
+        // so the counting effect gets user attention first
         new Handler().postDelayed(this::animateContentEntrance, 800);
-        new Handler().postDelayed(this::startPulseAnimation, 2000);
     }
 
     /**
@@ -248,95 +280,32 @@ public class HomeFragment extends Fragment {
      * dynamic counting animations for numerical values.
      */
     private void loadStaticStats() {
+        // Initialize first stat value and animate counting from 0 to 9
         statsValue1.setText("9");
         animateNumberCounter(statsValue1, 0, 9, 800);
 
+        // Initialize second stat value and animate counting from 0 to 170
         statsValue2.setText("170");
         animateNumberCounter(statsValue2, 0, 170, 1000);
 
+        // Third stat is a string, so no counting animation is needed
         statsValue3.setText("24/7");
     }
 
     /**
-     * Animates the central logo card spinning and scaling into view.
-     */
-    private void animateLogoEntrance() {
-        logoCard.setScaleX(0f);
-        logoCard.setScaleY(0f);
-        logoCard.setAlpha(0f);
-        logoCard.setRotation(-180f);
-
-        logoCard.animate()
-                .scaleX(1f)
-                .scaleY(1f)
-                .alpha(1f)
-                .rotation(0f)
-                .setDuration(1000)
-                .setInterpolator(new AccelerateDecelerateInterpolator())
-                .start();
-
-        startLogoFloatingAnimation();
-    }
-
-    /**
-     * Initiates a continuous, subtle vertical floating animation applied to the central logo.
-     */
-    private void startLogoFloatingAnimation() {
-        ValueAnimator floatAnimator = ValueAnimator.ofFloat(0f, 1f);
-        floatAnimator.setDuration(2000);
-        floatAnimator.setRepeatCount(ValueAnimator.INFINITE);
-        floatAnimator.setRepeatMode(ValueAnimator.REVERSE);
-        floatAnimator.addUpdateListener(animation -> {
-            float value = (float) animation.getAnimatedValue();
-            float translationY = (float) Math.sin(value * Math.PI * 2) * 10f;
-            logoCard.setTranslationY(translationY);
-        });
-        floatAnimator.start();
-    }
-
-    /**
-     * Initiates a continuous scaling pulse animation on the logo card.
-     */
-    private void startPulseAnimation() {
-        ScaleAnimation pulse = new ScaleAnimation(1f, 1.05f, 1f, 1.05f,
-                Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-        pulse.setDuration(1500);
-        pulse.setRepeatMode(Animation.REVERSE);
-        pulse.setRepeatCount(Animation.INFINITE);
-        logoCard.startAnimation(pulse);
-    }
-
-    /**
      * Staggers the fade-in and slide-up animations for the textual content,
-     * statistics cards, and navigation buttons.
+     * statistics cards, and navigation buttons by using incrementing delays.
      */
     private void animateContentEntrance() {
-        animateTextEntrance(welcomeText, 0);
-        animateTextEntrance(subtitleText, 100);
+        // Animate cards sequentially with 100ms offset
         animateStatsCardEntrance(statsCard1, 200);
         animateStatsCardEntrance(statsCard2, 300);
         animateStatsCardEntrance(statsCard3, 400);
+
+        // Animate buttons sequentially with 100ms offset
         animateButtonEntrance(buttonAbout, 500);
         animateButtonEntrance(buttonFeatures, 600);
         animateButtonEntrance(buttonContact, 700);
-    }
-
-    /**
-     * Animates a TextView fading in and sliding up into its final layout position.
-     *
-     * @param textView The TextView to animate.
-     * @param delay    The delay in milliseconds before the animation begins.
-     */
-    private void animateTextEntrance(TextView textView, long delay) {
-        textView.setAlpha(0f);
-        textView.setTranslationY(30f);
-        textView.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setDuration(600)
-                .setStartDelay(delay)
-                .setInterpolator(new AccelerateDecelerateInterpolator())
-                .start();
     }
 
     /**
@@ -346,17 +315,19 @@ public class HomeFragment extends Fragment {
      * @param delay The delay in milliseconds before the animation begins.
      */
     private void animateStatsCardEntrance(MaterialCardView card, long delay) {
+        // Reset properties so it appears hidden before the animation starts
         card.setScaleX(0f);
         card.setScaleY(0f);
         card.setAlpha(0f);
 
+        // Animate towards full scale and full opacity
         card.animate()
                 .scaleX(1f)
                 .scaleY(1f)
                 .alpha(1f)
                 .setDuration(500)
                 .setStartDelay(delay)
-                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .setInterpolator(new AccelerateDecelerateInterpolator()) // Smooth easing
                 .start();
     }
 
@@ -367,8 +338,11 @@ public class HomeFragment extends Fragment {
      * @param delay  The delay in milliseconds before the animation begins.
      */
     private void animateButtonEntrance(View button, long delay) {
+        // Reset properties to be slightly pushed down and invisible
         button.setAlpha(0f);
         button.setTranslationY(50f);
+
+        // Slide up to normal position while fading in
         button.animate()
                 .alpha(1f)
                 .translationY(0f)
@@ -376,36 +350,6 @@ public class HomeFragment extends Fragment {
                 .setStartDelay(delay)
                 .setInterpolator(new AccelerateDecelerateInterpolator())
                 .start();
-    }
-
-    /**
-     * Retrieves the authenticated user's username by querying the hosting MainActivity.
-     *
-     * @return The username, or null if it cannot be determined.
-     */
-    private String getUsername() {
-        if (getActivity() != null && getActivity() instanceof MainActivity) {
-            return ((MainActivity) getActivity()).getUsername();
-        }
-        return null;
-    }
-
-    /**
-     * Evaluates user context and schedules a celebratory animation sequence for the statistics cards.
-     */
-    private void loadServiceStats() {
-        String username = getUsername();
-        if (username == null || getContext() == null) return;
-        new Handler().postDelayed(this::animateStatsCelebration, 2000);
-    }
-
-    /**
-     * Executes a staggered bouncing effect across all three statistics cards to draw attention.
-     */
-    private void animateStatsCelebration() {
-        animateBounceEffect(statsCard1);
-        new Handler().postDelayed(() -> animateBounceEffect(statsCard2), 150);
-        new Handler().postDelayed(() -> animateBounceEffect(statsCard3), 300);
     }
 
     /**
@@ -417,32 +361,22 @@ public class HomeFragment extends Fragment {
      * @param duration The duration of the counting animation in milliseconds.
      */
     private void animateNumberCounter(TextView textView, int start, int end, long duration) {
+        // Create an animator that interpolates integers from start to end
         ValueAnimator animator = ValueAnimator.ofInt(start, end);
         animator.setDuration(duration);
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        // Update the TextView every time the animator tick changes the value
         animator.addUpdateListener(valueAnimator -> {
+            // Format number with commas for readability (e.g., 1,000)
             String value = String.format(Locale.US, "%,d", (int)valueAnimator.getAnimatedValue());
+
+            // Append a "+" sign if the final number is large (over 50), unless it's a fixed text like "24/7"
             textView.setText(value + (end > 50 && !value.contains("24/7") ? "+" : ""));
         });
-        animator.start();
-    }
 
-    /**
-     * Applies a quick scaling bounce effect to a specific view.
-     *
-     * @param view The view to animate.
-     */
-    private void animateBounceEffect(View view) {
-        view.animate()
-                .scaleX(1.1f)
-                .scaleY(1.1f)
-                .setDuration(200)
-                .withEndAction(() -> view.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(200)
-                        .start())
-                .start();
+        // Execute the counter animation
+        animator.start();
     }
 
     /**
@@ -452,90 +386,92 @@ public class HomeFragment extends Fragment {
      * @param action The runnable logic to fire after the animation.
      */
     private void animateModernButtonClick(View v, Runnable action) {
+        // Step 1: Scale down simulating a physical press
         v.animate()
                 .scaleX(0.95f)
                 .scaleY(0.95f)
                 .setDuration(80)
                 .withEndAction(() -> {
+                    // Step 2: Scale back to normal simulating a release
                     v.animate()
                             .scaleX(1f)
                             .scaleY(1f)
                             .setDuration(120)
-                            .withEndAction(action)
+                            .withEndAction(action) // Execute navigation or logic
                             .start();
                 })
                 .start();
     }
 
     /**
-     * Fades in a linear progress indicator at the top of the screen to signify background work.
-     */
-    private void showLoadingProgress() {
-        loadingProgress.setVisibility(View.VISIBLE);
-        loadingProgress.setAlpha(0f);
-        loadingProgress.animate()
-                .alpha(1f)
-                .setDuration(300)
-                .start();
-
-        animationHandler.postDelayed(this::hideLoadingProgress, 1500);
-    }
-
-    /**
-     * Fades out and hides the linear progress indicator.
-     */
-    private void hideLoadingProgress() {
-        loadingProgress.animate()
-                .alpha(0f)
-                .setDuration(300)
-                .withEndAction(() -> loadingProgress.setVisibility(View.INVISIBLE))
-                .start();
-    }
-
-    /**
-     * Fetches a subset of products from Firestore and displays them in a horizontal,
-     * scrollable popup window acting as a featured carousel.
+     * Fetches products using FirebaseHelper, shuffles them locally, and displays
+     * up to 10 random products in a horizontal, scrollable popup window.
      */
     private void showRandomProductCarousel() {
+        // Ensure fragment is safely attached before proceeding
         if (getContext() == null || getView() == null) return;
 
-        FirebaseFirestore.getInstance().collection("products")
-                .limit(10)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (!isAdded() || getView() == null) return;
-                    if (querySnapshot.isEmpty()) {
-                        showSimpleToast("No products available to display.");
-                        return;
+        // Use your existing helper to take advantage of its offline caching!
+        // This fetches the full list of products.
+        new FirebaseHelper().getAllProducts(new FirebaseHelper.ProductsCallback() {
+            @Override
+            public void onProductsLoaded(List<FirebaseHelper.Product> products) {
+                // Double-check fragment attachment inside callback to avoid memory leaks/crashes
+                if (!isAdded() || getView() == null) return;
+
+                // Handle empty database case gracefully
+                if (products == null || products.isEmpty()) {
+                    showSimpleToast("No products available to display.");
+                    return;
+                }
+
+                // 1. Shuffle the list to randomize the order of the products shown
+                Collections.shuffle(products);
+
+                // 2. Take only the first 10 items (or fewer if you don't have 10 products yet)
+                // This prevents out-of-bounds exceptions.
+                int limit = Math.min(10, products.size());
+                List<FirebaseHelper.Product> randomTen = products.subList(0, limit);
+
+                // 3. Setup the popup view by inflating the carousel layout
+                View popupView = getLayoutInflater().inflate(R.layout.product_carousel_popup, null);
+                LinearLayout horizontalContainer = popupView.findViewById(R.id.horizontalProductContainer);
+                Button btnClose = popupView.findViewById(R.id.btnCloseCarousel);
+                LayoutInflater productInflater = getLayoutInflater();
+
+                // 4. Add the randomized products to the horizontal container inside the popup
+                for (FirebaseHelper.Product product : randomTen) {
+                    if (product.name != null && product.imageUrl != null) {
+                        addProductCardToCarousel(productInflater, horizontalContainer, product.name, product.imageUrl);
                     }
+                }
 
-                    View popupView = getLayoutInflater().inflate(R.layout.product_carousel_popup, null);
-                    LinearLayout horizontalContainer = popupView.findViewById(R.id.horizontalProductContainer);
-                    Button btnClose = popupView.findViewById(R.id.btnCloseCarousel);
+                // 5. Construct and configure the PopupWindow
+                PopupWindow carouselPopup = new PopupWindow(
+                        popupView,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        true // Sets the popup to be focusable so touching outside or back button can dismiss it
+                );
 
-                    LayoutInflater productInflater = getLayoutInflater();
-                    for (QueryDocumentSnapshot doc : querySnapshot) {
-                        String name = doc.getString("name");
-                        String imageUrl = doc.getString("imageUrl");
-                        if (name != null && imageUrl != null) {
-                            addProductCardToCarousel(productInflater, horizontalContainer, name, imageUrl);
-                        }
-                    }
+                // Add elevation for a shadow effect and set a solid background color
+                carouselPopup.setElevation(20f);
+                carouselPopup.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
 
-                    PopupWindow carouselPopup = new PopupWindow(
-                            popupView,
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            true
-                    );
+                // Display the popup centered relative to the current fragment view
+                carouselPopup.showAtLocation(requireView(), Gravity.CENTER, 0, 0);
 
-                    carouselPopup.setElevation(20f);
-                    carouselPopup.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
-                    carouselPopup.showAtLocation(requireView(), Gravity.CENTER, 0, 0);
+                // Close the popup when the 'X' or Close button is clicked
+                btnClose.setOnClickListener(v -> carouselPopup.dismiss());
+            }
 
-                    btnClose.setOnClickListener(v -> carouselPopup.dismiss());
-                })
-                .addOnFailureListener(e -> showSimpleToast("Failed to load products."));
+            @Override
+            public void onError(String error) {
+                // Handle Firebase fetch failure gracefully
+                if (!isAdded()) return;
+                showSimpleToast("Failed to load products: " + error);
+            }
+        });
     }
 
     /**
@@ -548,8 +484,10 @@ public class HomeFragment extends Fragment {
      * @param imageUrl  The URL of the product image.
      */
     private void addProductCardToCarousel(LayoutInflater inflater, LinearLayout container, String name, String imageUrl) {
+        // Inflate a standard product row layout used elsewhere in the app
         View productView = inflater.inflate(R.layout.table_row_products, container, false);
 
+        // Define fixed width and spacing constraints for carousel items
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 (int) getResources().getDimension(R.dimen.product_card_width),
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -557,45 +495,54 @@ public class HomeFragment extends Fragment {
         params.setMarginEnd((int) getResources().getDimension(R.dimen.activity_horizontal_margin));
         productView.setLayoutParams(params);
 
+        // Locate and load the product image using Picasso
         ImageView imageView = productView.findViewById(R.id.imageViewProduct);
         if (imageView != null) {
             try {
                 Picasso.get()
                         .load(imageUrl)
-                        .placeholder(R.drawable.ic_store)
-                        .error(R.drawable.ic_store)
-                        .fit()
-                        .centerCrop()
+                        .placeholder(R.drawable.ic_store) // Show a default icon while loading
+                        .error(R.drawable.ic_store)       // Show a default icon on failure
+                        .fit()                            // Scale image to fit bounds
+                        .centerCrop()                     // Crop to maintain aspect ratio
                         .into(imageView);
             } catch (Exception e) {
+                // If Picasso completely fails or URL is corrupted, set a local fallback
                 imageView.setImageResource(R.drawable.ic_store);
             }
         }
 
+        // Set the product name text
         TextView textViewName = productView.findViewById(R.id.textViewName);
         if (textViewName != null) {
             textViewName.setText(name);
         }
 
+        // Since this is just a showcase carousel, we remove/hide interaction buttons
+        // like "price", "buy", and quantity adjusters to keep it clean.
         if (productView.findViewById(R.id.textViewPrice) != null) productView.findViewById(R.id.textViewPrice).setVisibility(View.GONE);
         if (productView.findViewById(R.id.buyButton) != null) productView.findViewById(R.id.buyButton).setVisibility(View.GONE);
 
+        // Handle the quantity container logic (locating the parent layout of the minus button)
         View quantityContainer = productView.findViewById(R.id.minusButton).getParent() instanceof LinearLayout ?
                 (View) productView.findViewById(R.id.minusButton).getParent() : null;
         if (quantityContainer != null) {
             quantityContainer.setVisibility(View.GONE);
         }
 
+        // Finally, append the configured view into the horizontal scrolling container
         container.addView(productView);
     }
 
     /**
      * Called when the fragment's view is being destroyed. Removes queued handler callbacks
-     * to ensure animations do not attempt to modify views that no longer exist.
+     * to ensure animations do not attempt to modify views that no longer exist,
+     * which prevents memory leaks and NullPointerExceptions.
      */
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        // Clear all pending runnables (like delayed entrance animations)
         animationHandler.removeCallbacksAndMessages(null);
     }
 }

@@ -140,32 +140,26 @@ public class RegisterActivity extends AppCompatActivity {
             usernameLayout.setError("Username is required");
             return false;
         }
-
         if (email.isEmpty()) {
             emailLayout.setError("Email is required");
             return false;
         }
-
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             emailLayout.setError("Please enter a valid email address");
             return false;
         }
-
         if (password.isEmpty()) {
             passwordLayout.setError("Password is required");
             return false;
         }
-
         if (password.length() < 6) {
             passwordLayout.setError("Password must be at least 6 characters");
             return false;
         }
-
         if (rePassword.isEmpty()) {
             rePasswordLayout.setError("Please confirm your password");
             return false;
         }
-
         if (!password.equals(rePassword)) {
             rePasswordLayout.setError("Passwords do not match");
             return false;
