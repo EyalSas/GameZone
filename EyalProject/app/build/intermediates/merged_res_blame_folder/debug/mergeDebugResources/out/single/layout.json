@@ -1,0 +1,78 @@
+[
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\dialog_add_service.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\dialog_add_service.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\item_product.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\item_product.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\item_category.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\item_category.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\spinner_dropdown_item.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\spinner_dropdown_item.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\fragment_home.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\fragment_home.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\table_row_products.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\table_row_products.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\table_row_title.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\table_row_title.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\activity_main.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\dialog_profile.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\dialog_profile.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\spinner_item.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\spinner_item.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\activity_login.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\activity_login.xml"
+    },
+    {
+        "merged": "com.example.eyalproject.app-mergeDebugResources-43:/layout/profile_dropdown.xml",
+        "source": "com.example.eyalproject.app-main-46:/layout/profile_dropdown.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\splash_screen.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\splash_screen.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\fragment_store.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\fragment_store.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\fragment_dashboard.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\fragment_dashboard.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\activity_welcome.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\activity_welcome.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\fragment_notifications.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\fragment_notifications.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\fragment_service.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\fragment_service.xml"
+    },
+    {
+        "merged": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-mergeDebugResources-43:\\layout\\activity_register.xml",
+        "source": "C:\\Users\\User\\.gradle\\daemon\\8.7\\com.example.eyalproject.app-main-46:\\layout\\activity_register.xml"
+    }
+]

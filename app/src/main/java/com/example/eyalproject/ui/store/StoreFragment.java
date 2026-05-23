@@ -515,6 +515,7 @@ public class StoreFragment extends Fragment {
                 btnMinus = view.findViewById(R.id.minusButton);
                 btnPlus = view.findViewById(R.id.plusButton);
                 btnBuy = view.findViewById(R.id.buyButton);
+
             }
         }
     }
