@@ -60,7 +60,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Tap 'X' or outside to dismiss."
+            android:text="Tap outside to dismiss."
             android:textSize="12sp"
             android:textColor="@android:color/darker_gray"
             android:gravity="center_horizontal" />
