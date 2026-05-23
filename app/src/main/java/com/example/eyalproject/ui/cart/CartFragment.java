@@ -60,13 +60,9 @@ public class CartFragment extends Fragment {
     private TextView textViewTotalSum;
     private View btnBuyAll;
     private Button btnViewHistory;
-
     private PopupWindow receiptPopup;
     private AlertDialog paymentDialog;
     private PopupWindow historyPopup;
-
-    private Handler mainHandler = new Handler(Looper.getMainLooper());
-
     private double currentCartTotal = 0.0;
 
     /**
@@ -79,17 +75,16 @@ public class CartFragment extends Fragment {
      * @return Return the View for the fragment's UI.
      */
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // Inflate the main layout for the cart screen
         View root = inflater.inflate(R.layout.fragment_cart, container, false);
-
+        // Initialize the helper for all database operations
         fbHelper = new FirebaseHelper();
-
+        // Bind UI components to local variables
         tableLayout = root.findViewById(R.id.tableLayout);
         textViewTotalSum = root.findViewById(R.id.textViewTotalSum);
         btnBuyAll = root.findViewById(R.id.btnBuyAll);
         btnViewHistory = root.findViewById(R.id.btnViewHistory);
-
         return root;
     }
 
@@ -100,21 +95,23 @@ public class CartFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        // Fetch the latest cart data from Firestore every time the screen becomes visible
         loadCartDataAsync();
-
+        // Set up the checkout button flow
         btnBuyAll.setOnClickListener(v -> {
+            // Prevent checkout if user session is invalid
             if (fbHelper.getCurrentUserId() == null) {
                 showCustomToast("User not logged in", R.drawable.ic_store, R.color.error);
                 return;
             }
-
+            // Proceed to payment only if there are items with a total > 0
             if (currentCartTotal > 0.0) {
                 showPaymentPopup(currentCartTotal);
             } else {
                 showCustomToast("Your cart is empty", R.drawable.ic_store, R.color.info_color);
             }
         });
-
+        // Set up the history button to show past purchases
         btnViewHistory.setOnClickListener(v -> showHistoryPopup());
     }
 
@@ -124,21 +121,22 @@ public class CartFragment extends Fragment {
      */
     private void loadCartDataAsync() {
         String userId = fbHelper.getCurrentUserId();
+        // If no user is logged in, default to an empty state immediately
         if (userId == null) {
             showEmptyCartState();
             return;
         }
-
+        // Query Firebase for the user's active cart items
         fbHelper.getCartItems(new FirebaseHelper.CartCallback() {
             @Override
             public void onCartLoaded(List<FirebaseHelper.CartItem> items, double totalSum) {
+                // Ensure fragment is still attached to avoid crashes when updating UI
                 if (!isAdded() || getContext() == null) return;
-
+                // Store the total and refresh the display
                 currentCartTotal = totalSum;
                 displayOrdersUI(items);
                 updateTotalSumUI(totalSum);
             }
-
             @Override
             public void onError(String error) {
                 if (!isAdded() || getContext() == null) return;
@@ -154,10 +152,13 @@ public class CartFragment extends Fragment {
      * @param items The list of cart items to display.
      */
     private void displayOrdersUI(List<FirebaseHelper.CartItem> items) {
+        // Clear old rows before redrawing to prevent duplicates
         tableLayout.removeAllViews();
         if (items.isEmpty()) {
+            // Show placeholder if there's nothing to buy
             showEmptyCartState();
         } else {
+            // Dynamically generate and append a row for each item in the cart
             for (FirebaseHelper.CartItem item : items) {
                 TableRow tableRow = createOrderRow(item);
                 tableLayout.addView(tableRow);
@@ -172,8 +173,10 @@ public class CartFragment extends Fragment {
      * @param totalSum The calculated total price.
      */
     private void updateTotalSumUI(double totalSum) {
+        // Format the total as currency (e.g., $10.50)
         textViewTotalSum.setText(String.format(Locale.getDefault(), "$%.2f", totalSum));
         if (btnBuyAll != null) {
+            // Disable and visually dim the buy button if the cart is empty
             boolean hasItems = totalSum > 0;
             btnBuyAll.setEnabled(hasItems);
             btnBuyAll.setAlpha(hasItems ? 1f : 0.5f);
@@ -187,34 +190,37 @@ public class CartFragment extends Fragment {
      * @param totalAmount The total amount to be charged, displayed on the confirmation button.
      */
     private void showPaymentPopup(double totalAmount) {
+        // Inflate the custom popup layout for credit card entry
         View popupView = LayoutInflater.from(getContext()).inflate(R.layout.payment_popup, null);
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setView(popupView);
-
+        // Bind input fields and buttons
         final EditText editTextCardNumber = popupView.findViewById(R.id.editTextCardNumber);
         final EditText editTextExpiryDate = popupView.findViewById(R.id.editTextExpiryDate);
         final EditText editTextCVV = popupView.findViewById(R.id.editTextCVV);
         final TextView textViewPaymentError = popupView.findViewById(R.id.textViewPaymentError);
         final Button btnPayNow = popupView.findViewById(R.id.btnPayNow);
         final Button btnCancelPayment = popupView.findViewById(R.id.btnCancelPayment);
-
+        // Show the exact charge amount on the button
         btnPayNow.setText(String.format(Locale.getDefault(), "Pay $%.2f", totalAmount));
+        // Apply auto-formatting (MM/YY) to the expiry date field
         addExpiryDateTextWatcher(editTextExpiryDate);
         paymentDialog = builder.create();
-
+        // Handle the "Pay" action
         btnPayNow.setOnClickListener(v -> {
             String cardNumber = editTextCardNumber.getText().toString().replaceAll("\\s", "");
             String expiryDate = editTextExpiryDate.getText().toString();
             String cvv = editTextCVV.getText().toString();
-
+            // Validate inputs; if good, process the transaction and close dialog
             if (validatePaymentDetails(cardNumber, expiryDate, cvv, textViewPaymentError)) {
                 showCustomToast("Payment Processing...", R.drawable.ic_store, R.color.primary_color);
                 buyAll();
                 paymentDialog.dismiss();
             }
         });
-
+        // Handle the "Cancel" action
         btnCancelPayment.setOnClickListener(v -> paymentDialog.dismiss());
+        // Force the user to explicitly cancel or pay (can't just tap outside)
         paymentDialog.setCanceledOnTouchOutside(false);
         paymentDialog.show();
     }
@@ -229,26 +235,31 @@ public class CartFragment extends Fragment {
      * @return True if all details are valid, False otherwise.
      */
     private boolean validatePaymentDetails(String cardNumber, String expiryDate, String cvv, TextView errorTextView) {
+        // Check for completely blank fields
         if (TextUtils.isEmpty(cardNumber) || TextUtils.isEmpty(expiryDate) || TextUtils.isEmpty(cvv)) {
             errorTextView.setText("All fields are required.");
             errorTextView.setVisibility(View.VISIBLE);
             return false;
         }
+        // Standard credit cards must be exactly 16 digits
         if (cardNumber.length() != 16 || !TextUtils.isDigitsOnly(cardNumber)) {
             errorTextView.setText("Invalid Card Number (must be 16 digits).");
             errorTextView.setVisibility(View.VISIBLE);
             return false;
         }
+        // CVV must be 3 (Visa/MC) or 4 (Amex) digits
         if ((cvv.length() < 3 || cvv.length() > 4) || !TextUtils.isDigitsOnly(cvv)) {
             errorTextView.setText("Invalid CVV (must be 3 or 4 digits).");
             errorTextView.setVisibility(View.VISIBLE);
             return false;
         }
+        // Ensure expiry matches MM/YY format using regex
         if (!expiryDate.matches("^(0[1-9]|1[0-2])/([0-9]{2})$")) {
             errorTextView.setText("Invalid Expiry Date format (MM/YY).");
             errorTextView.setVisibility(View.VISIBLE);
             return false;
         }
+        // Verify the card is not logically expired in the past
         try {
             String[] parts = expiryDate.split("/");
             int month = Integer.parseInt(parts[0]);
@@ -266,6 +277,7 @@ public class CartFragment extends Fragment {
             errorTextView.setVisibility(View.VISIBLE);
             return false;
         }
+        // All checks passed; hide error text
         errorTextView.setVisibility(View.GONE);
         return true;
     }
@@ -283,22 +295,24 @@ public class CartFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 String text = s.toString();
-                if (text.equals(current)) {
-                    return;
-                }
+                if (text.equals(current)) return; // Prevent infinite loops
+                // Strip out everything but numbers
                 String digits = text.replaceAll("\\D", "");
                 int len = digits.length();
                 String formatted;
+                // Insert the slash automatically after the second digit
                 if (len <= 2) {
                     formatted = digits;
                 } else {
                     formatted = digits.substring(0, 2) + "/" + digits.substring(2);
                 }
+                // Cap the length at 5 chars (MM/YY)
                 if (formatted.length() > 5) {
                     formatted = formatted.substring(0, 5);
                 }
                 current = formatted;
                 et.setText(formatted);
+                // Move cursor to the end
                 et.setSelection(formatted.length());
             }
         });
@@ -313,36 +327,33 @@ public class CartFragment extends Fragment {
             showCustomToast("User session expired. Please log in.", R.drawable.ic_store, R.color.error);
             return;
         }
-
+        // Retrieve the final state of the cart directly before checkout
         fbHelper.getCartItems(new FirebaseHelper.CartCallback() {
             @Override
             public void onCartLoaded(List<FirebaseHelper.CartItem> items, double totalSum) {
                 if (!isAdded() || getContext() == null) return;
-
+                // Generate the text layout for the digital receipt
                 String receipt = generateDigitalReceipt(items, totalSum);
-
+                // Push the receipt to Firebase history and clear the cart in one transaction
                 fbHelper.checkoutCart(receipt, totalSum, new FirebaseHelper.CheckoutCallback() {
                     @Override
                     public void onSuccess() {
                         if (!isAdded() || getContext() == null) return;
-
+                        // On success, show the receipt, trigger a notification, and refresh UI
                         showReceiptPopup(receipt);
                         schedulePurchaseNotification();
                         loadCartDataAsync();
                         showCustomToast("Purchase successful! History saved.", R.drawable.ic_store, R.color.success_color);
                     }
-
                     @Override
                     public void onFailure(String error) {
                         if (!isAdded() || getContext() == null) return;
-
-                        saveReceiptToFile(receipt);
+                        // Fallback: If DB save fails, save the receipt locally so the user doesn't lose proof of purchase
                         showCustomToast("Payment successful but failed to save history to DB. Saved to file.",
                                 R.drawable.ic_store, R.color.error);
                     }
                 });
             }
-
             @Override
             public void onError(String error) {
                 showCustomToast("Checkout failed: Could not retrieve cart data.", R.drawable.ic_store, R.color.error);
@@ -354,15 +365,15 @@ public class CartFragment extends Fragment {
      * Displays a placeholder empty state view within the table layout when no items exist in the cart.
      */
     private void showEmptyCartState() {
+        // Clear layout and build a centered placeholder row
         tableLayout.removeAllViews();
         TableRow emptyRow = new TableRow(getContext());
         TableLayout.LayoutParams params = new TableLayout.LayoutParams(
-                TableLayout.LayoutParams.MATCH_PARENT,
-                TableLayout.LayoutParams.WRAP_CONTENT
+                TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT
         );
-        params.setMargins(0, 100, 0, 0);
+        params.setMargins(0, 100, 0, 0); // Push down from the top slightly
         emptyRow.setLayoutParams(params);
-
+        // Build the actual text view with an icon
         TextView emptyText = new TextView(getContext());
         emptyText.setText("🛒\nYour Cart is Empty");
         emptyText.setTextColor(ContextCompat.getColor(getContext(), R.color.text_secondary));
@@ -370,10 +381,8 @@ public class CartFragment extends Fragment {
         emptyText.setTextSize(18);
         emptyText.setLineSpacing(1.2f, 1.2f);
         emptyText.setLayoutParams(new TableRow.LayoutParams(
-                TableRow.LayoutParams.MATCH_PARENT,
-                TableRow.LayoutParams.WRAP_CONTENT
+                TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT
         ));
-
         emptyRow.addView(emptyText);
         tableLayout.addView(emptyRow);
     }
@@ -387,25 +396,22 @@ public class CartFragment extends Fragment {
      */
     private TableRow createOrderRow(FirebaseHelper.CartItem item) {
         TableRow tableRow = new TableRow(getContext());
+        // Apply card-like styling to each row
         tableRow.setBackground(ContextCompat.getDrawable(getContext(), R.drawable.rounded_card));
-        tableRow.setGravity(Gravity.CENTER_VERTICAL); // Align the icon, price, and text vertically
-
+        tableRow.setGravity(Gravity.CENTER_VERTICAL);
         TableLayout.LayoutParams layoutParams = new TableLayout.LayoutParams(
-                TableLayout.LayoutParams.MATCH_PARENT,
-                TableLayout.LayoutParams.WRAP_CONTENT
+                TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT
         );
         layoutParams.setMargins(0, 0, 0, 8);
         tableRow.setLayoutParams(layoutParams);
-
-        // 1. Order Name
+        // 1. Order Name and Quantity
         TextView textViewOrderName = new TextView(getContext());
         textViewOrderName.setText(item.productName + " (x" + item.quantity + ")");
         textViewOrderName.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
         textViewOrderName.setTextSize(16);
         textViewOrderName.setPadding(16, 20, 8, 20);
         textViewOrderName.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 3f));
-
-        // 2. Order Price
+        // 2. Order Price calculation
         TextView textViewOrderPrice = new TextView(getContext());
         textViewOrderPrice.setText(String.format(Locale.getDefault(), "$%.2f", item.price * item.quantity));
         textViewOrderPrice.setTextColor(ContextCompat.getColor(getContext(), R.color.primary_color));
@@ -415,26 +421,22 @@ public class CartFragment extends Fragment {
         textViewOrderPrice.setGravity(Gravity.CENTER);
         textViewOrderPrice.setSingleLine(true);
         textViewOrderPrice.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1.2f));
-
         // 3. Remove Item Icon Button (Trash Can)
         ImageButton btnRemoveItem = new ImageButton(getContext());
-        btnRemoveItem.setImageResource(android.R.drawable.ic_menu_delete); // Built-in Android trash icon
-        btnRemoveItem.setBackgroundColor(Color.TRANSPARENT); // Remove the boxy background
-        btnRemoveItem.setColorFilter(ContextCompat.getColor(getContext(), R.color.error)); // Tint to red
+        btnRemoveItem.setImageResource(android.R.drawable.ic_menu_delete);
+        btnRemoveItem.setBackgroundColor(Color.TRANSPARENT);
+        btnRemoveItem.setColorFilter(ContextCompat.getColor(getContext(), R.color.error)); // Tint icon red
         btnRemoveItem.setPadding(8, 20, 16, 20);
-
-        // Use a smaller layout weight (0.8f) so it takes up less space than the text
         btnRemoveItem.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.8f));
-
+        // Delete item from Firebase on click
         btnRemoveItem.setOnClickListener(v -> {
             fbHelper.deleteCartItem(item.documentId, new FirebaseHelper.ActionCallback() {
                 @Override
                 public void onSuccess() {
                     if (!isAdded() || getContext() == null) return;
                     showCustomToast("Item removed from cart", R.drawable.ic_store, R.color.success_color);
-                    loadCartDataAsync();
+                    loadCartDataAsync(); // Refresh cart to reflect deletion
                 }
-
                 @Override
                 public void onFailure(String error) {
                     if (!isAdded() || getContext() == null) return;
@@ -442,11 +444,9 @@ public class CartFragment extends Fragment {
                 }
             });
         });
-
         tableRow.addView(textViewOrderName);
         tableRow.addView(textViewOrderPrice);
         tableRow.addView(btnRemoveItem);
-
         return tableRow;
     }
 
@@ -456,38 +456,34 @@ public class CartFragment extends Fragment {
      */
     private void showHistoryPopup() {
         if (getContext() == null || getView() == null) return;
-
         if (fbHelper.getCurrentUserId() == null) {
             showCustomToast("User session required to view history.", R.drawable.ic_store, R.color.error);
             return;
         }
-
+        // Inflate the popup layout
         View popupView = LayoutInflater.from(getContext()).inflate(R.layout.history_popup, null);
         LinearLayout historyContainer = popupView.findViewById(R.id.historyPopupContainer);
         Button btnCloseHistory = popupView.findViewById(R.id.btnCloseHistory);
-
+        // Show temporary loading text while fetching data
         TextView loadingText = new TextView(getContext());
         loadingText.setText("Loading history...");
         loadingText.setGravity(Gravity.CENTER);
         historyContainer.addView(loadingText);
-
+        // Build the popup window
         historyPopup = new PopupWindow(
-                popupView,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                true
+                popupView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, true
         );
         historyPopup.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
         historyPopup.setElevation(20f);
         historyPopup.showAtLocation(requireView(), Gravity.CENTER, 0, 0);
-
+        // Fetch history data from Firebase
         fbHelper.getReceiptHistory(new FirebaseHelper.HistoryCallback() {
             @Override
             public void onHistoryLoaded(List<FirebaseHelper.ReceiptItem> historyList) {
                 if (!isAdded() || getContext() == null) return;
-                historyContainer.removeAllViews();
-
+                historyContainer.removeAllViews(); // Remove loading text
                 if (historyList.isEmpty()) {
+                    // Show empty state if no history exists
                     TextView emptyText = new TextView(getContext());
                     emptyText.setText("No purchase history yet. Buy something!");
                     emptyText.setGravity(Gravity.CENTER);
@@ -495,11 +491,11 @@ public class CartFragment extends Fragment {
                     emptyText.setTextColor(ContextCompat.getColor(getContext(), R.color.text_secondary));
                     historyContainer.addView(emptyText);
                 } else {
+                    // Build table of past receipts
                     TableLayout historyTable = new TableLayout(getContext());
                     historyTable.setLayoutParams(new LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
                     historyTable.setStretchAllColumns(true);
-
                     historyTable.addView(createHistoryHeader());
                     for (FirebaseHelper.ReceiptItem item : historyList) {
                         historyTable.addView(createHistoryRow(item));
@@ -507,7 +503,6 @@ public class CartFragment extends Fragment {
                     historyContainer.addView(historyTable);
                 }
             }
-
             @Override
             public void onError(String error) {
                 if (!isAdded() || getContext() == null) return;
@@ -517,7 +512,6 @@ public class CartFragment extends Fragment {
                 historyContainer.addView(errText);
             }
         });
-
         btnCloseHistory.setOnClickListener(v -> historyPopup.dismiss());
     }
 
@@ -531,11 +525,11 @@ public class CartFragment extends Fragment {
         headerLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         headerLayout.setStretchAllColumns(true);
-
+        // Apply distinct background color for the header row
         TableRow headerRow = new TableRow(getContext());
         headerRow.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.light_gray));
         headerRow.setPadding(16, 16, 16, 16);
-
+        // Distribute columns evenly
         String[] headers = {"Date", "Price", "Action"};
         int[] weights = {2, 2, 2};
         for (int i = 0; i < headers.length; i++) {
@@ -568,7 +562,6 @@ public class CartFragment extends Fragment {
         tv.setTextColor(color);
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         if (isBold) tv.setTypeface(null, Typeface.BOLD);
-
         TableRow.LayoutParams params = new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, weight);
         tv.setLayoutParams(params);
         return tv;
@@ -584,34 +577,30 @@ public class CartFragment extends Fragment {
     private TableRow createHistoryRow(FirebaseHelper.ReceiptItem item) {
         Context context = getContext();
         if (context == null) return new TableRow(requireContext());
-
         TableRow row = new TableRow(context);
         row.setBackgroundColor(Color.WHITE);
         row.setPadding(16, 10, 16, 10);
-
         int textColorSecondary = ContextCompat.getColor(context, R.color.text_secondary);
         int primaryColor = ContextCompat.getColor(context, R.color.primary_color);
-
+        // Truncate timestamp to just show the date (YYYY-MM-DD)
         String shortDate = item.date.length() >= 10 ? item.date.substring(0, 10) : item.date;
         TextView tvDate = createTextView(context, shortDate, 2f, textColorSecondary, false);
         row.addView(tvDate);
-
+        // Format price
         TextView tvPrice = createTextView(context, String.format(Locale.getDefault(), "$%.2f", item.totalPrice), 2f, primaryColor, true);
         row.addView(tvPrice);
-
+        // Add "View" button to load the full receipt content
         Button btnViewReceipt = new Button(context);
         btnViewReceipt.setText("View");
         btnViewReceipt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         btnViewReceipt.setBackgroundColor(primaryColor);
         btnViewReceipt.setTextColor(Color.WHITE);
         btnViewReceipt.setPadding(8, 0, 8, 0);
-
         btnViewReceipt.setOnClickListener(v -> showReceiptPopup(item.content));
-
+        // Match height and alignment
         TableRow.LayoutParams buttonParams = new TableRow.LayoutParams(0, (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 36, getResources().getDisplayMetrics()), 2f);
         btnViewReceipt.setLayoutParams(buttonParams);
         row.addView(btnViewReceipt);
-
         return row;
     }
 
@@ -621,21 +610,19 @@ public class CartFragment extends Fragment {
      */
     private void schedulePurchaseNotification() {
         try {
+            // Hook into system alarm service
             AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
             Intent intent = new Intent(requireContext(), CartReminderReceiver.class);
             intent.setAction("PURCHASE_CONFIRMATION");
             intent.putExtra("message", "Thank you for your purchase! Your order is being processed.");
             intent.putExtra("title", "Purchase Confirmation");
-
+            // Wrap in PendingIntent for system execution
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                    requireContext(),
-                    (int) System.currentTimeMillis(),
-                    intent,
+                    requireContext(), (int) System.currentTimeMillis(), intent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
-
+            // Delay notification by 5 seconds
             long triggerTime = System.currentTimeMillis() + 5000;
-
             alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
         } catch (Exception e) {
             e.printStackTrace();
@@ -650,31 +637,26 @@ public class CartFragment extends Fragment {
      * @param receiptContent The formatted text contents of the receipt.
      */
     private void showReceiptPopup(String receiptContent) {
+        // Inflate receipt layout
         View popupView = LayoutInflater.from(getContext()).inflate(R.layout.receipt_popup, null);
         TextView textViewReceipt = popupView.findViewById(R.id.textViewReceipt);
         textViewReceipt.setText(receiptContent);
-
+        // Build popup
         receiptPopup = new PopupWindow(
-                popupView,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                true
+                popupView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, true
         );
         receiptPopup.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
         receiptPopup.setElevation(20f);
-
+        // Show centrally
         View rootView = getView();
         if (rootView != null) {
             receiptPopup.showAtLocation(rootView, Gravity.CENTER, 0, 0);
         }
-
+        // Handle dismiss and share actions
         Button btnClose = popupView.findViewById(R.id.btnCloseReceipt);
         btnClose.setOnClickListener(v -> {
-            if (receiptPopup != null && receiptPopup.isShowing()) {
-                receiptPopup.dismiss();
-            }
+            if (receiptPopup != null && receiptPopup.isShowing()) receiptPopup.dismiss();
         });
-
         Button btnShare = popupView.findViewById(R.id.btnShareReceipt);
         btnShare.setOnClickListener(v -> shareReceipt(receiptContent));
 
@@ -690,6 +672,7 @@ public class CartFragment extends Fragment {
      */
     private void shareReceipt(String receiptContent) {
         try {
+            // Launch OS chooser for sharing plain text
             android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
             shareIntent.setType("text/plain");
             shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Purchase Receipt");
@@ -711,22 +694,23 @@ public class CartFragment extends Fragment {
     private String generateDigitalReceipt(List<FirebaseHelper.CartItem> items, double totalSum) {
         StringBuilder receipt = new StringBuilder();
         String currentDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+        // Header
         receipt.append("🛍️ DIGITAL RECEIPT 🛍️\n");
         receipt.append("======================\n");
         receipt.append("Date: ").append(currentDate).append("\n");
         receipt.append("Order ID: ORD").append(System.currentTimeMillis()).append("\n");
         receipt.append("Status: PAID ✅\n\n");
-
         receipt.append("ITEMS PURCHASED:\n");
         receipt.append("----------------\n");
-
+        // Line items
         double subtotal = 0;
         for (FirebaseHelper.CartItem item : items) {
             double itemTotal = item.price * item.quantity;
             subtotal += itemTotal;
+            // Pad product name for column alignment
             receipt.append(String.format(Locale.getDefault(), "• %-20s x%d $%.2f\n", item.productName, item.quantity, itemTotal));
         }
-
+        // Footer and totals
         receipt.append("----------------\n");
         receipt.append(String.format(Locale.getDefault(), "SUBTOTAL:       $%.2f\n", subtotal));
         receipt.append(String.format(Locale.getDefault(), "TOTAL:          $%.2f\n", totalSum));
@@ -734,58 +718,8 @@ public class CartFragment extends Fragment {
         receipt.append("Thank you for your purchase! 🎉\n");
         receipt.append("We hope to see you again soon!\n\n");
         receipt.append("Generated by Eyal Project App");
-
         return receipt.toString();
     }
-
-    /**
-     * Resolves and creates the local directory structure intended for saving fallback receipts.
-     *
-     * @return The directory File object.
-     */
-    private File getReceiptsDirectory() {
-        File receiptsDir = new File(requireContext().getFilesDir(), "Receipts");
-        if (!receiptsDir.exists()) {
-            receiptsDir.mkdirs();
-        }
-        return receiptsDir;
-    }
-
-    /**
-     * Provides a fallback mechanism to save a generated digital receipt to local device storage
-     * in the event that saving to the cloud database fails.
-     *
-     * @param receipt The text content of the receipt.
-     * @return True if the file write operation was successful, False otherwise.
-     */
-    private boolean saveReceiptToFile(String receipt) {
-        FileOutputStream fos = null;
-        try {
-            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-            String fileName = "receipt_" + timeStamp + ".txt";
-
-            File receiptsDir = getReceiptsDirectory();
-            File receiptFile = new File(receiptsDir, fileName);
-
-            fos = new FileOutputStream(receiptFile);
-            fos.write(receipt.getBytes());
-            fos.flush();
-            return true;
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        } finally {
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
     /**
      * Inflates a custom layout to display an engaging, styled toast notification.
      * Falls back to a standard Android Toast if custom inflation fails.
@@ -796,29 +730,27 @@ public class CartFragment extends Fragment {
      */
     private void showCustomToast(String message, int iconResId, int typeColorResId) {
         if (getContext() == null || getActivity() == null) return;
-
         try {
+            // Inflate custom view
             LayoutInflater inflater = getLayoutInflater();
             View layout = inflater.inflate(R.layout.custom_toast,
                     (ViewGroup) getActivity().findViewById(R.id.custom_toast_container));
-
             TextView text = layout.findViewById(R.id.toast_text);
             ImageView icon = layout.findViewById(R.id.toast_icon);
             LinearLayout container = layout.findViewById(R.id.custom_toast_container);
-
+            // Colorize background dynamically based on requested theme (error, success, info)
             int color = ContextCompat.getColor(getContext(), typeColorResId);
             container.getBackground().mutate().setColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN);
-
             text.setText(message);
             icon.setImageResource(iconResId);
-
-
+            // Show customized toast
             Toast toast = new Toast(getContext());
             toast.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 150);
             toast.setDuration(Toast.LENGTH_SHORT);
             toast.setView(layout);
             toast.show();
         } catch (Exception e) {
+            // Fallback to standard toast if inflating fails
             Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
             e.printStackTrace();
         }
@@ -830,15 +762,10 @@ public class CartFragment extends Fragment {
      */
     @Override
     public void onDestroyView() {
-        if (receiptPopup != null && receiptPopup.isShowing()) {
-            receiptPopup.dismiss();
-        }
-        if (paymentDialog != null && paymentDialog.isShowing()) {
-            paymentDialog.dismiss();
-        }
-        if (historyPopup != null && historyPopup.isShowing()) {
-            historyPopup.dismiss();
-        }
+        // Prevent window leaks if the user navigates away while a popup is visible
+        if (receiptPopup != null && receiptPopup.isShowing()) receiptPopup.dismiss();
+        if (paymentDialog != null && paymentDialog.isShowing()) paymentDialog.dismiss();
+        if (historyPopup != null && historyPopup.isShowing()) historyPopup.dismiss();
         super.onDestroyView();
     }
 }

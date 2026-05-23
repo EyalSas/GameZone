@@ -50,69 +50,73 @@ public class MainActivity extends AppCompatActivity {
      * are instantly logged out.
      *
      * @param savedInstanceState If the activity is being re-initialized after previously being
-     * shut down then this Bundle contains the data it most recently
-     * supplied.
+     * shut down then this Bundle contains the data it most recently supplied.
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        // Load local preferences to retrieve the saved username across app restarts
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        // Check if the username was passed directly via Intent (e.g., just after login/register)
         username = getIntent().getStringExtra("USERNAME");
-
         if (username == null) {
+            // Fallback: If no Intent data, try to load it from saved preferences
             username = prefs.getString("USERNAME", null);
         } else {
+            // Save the newly retrieved Intent username into local preferences for future sessions
             prefs.edit().putString("USERNAME", username).apply();
         }
 
         fbHelper = new FirebaseHelper();
-
+        // Security check: If there is no known username or Firebase user, force a logout
         if (username == null || fbHelper.getCurrentUserId() == null) {
             logoutUser();
             return;
         }
 
+        // Inflate the main layout using ViewBinding
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         BottomNavigationView navView = findViewById(R.id.nav_view);
 
+        // Define top-level destinations so the Navigation component doesn't show back arrows for them
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.navigation_home, R.id.navigation_store,
-                R.id.navigation_service)
-                .build();
+                R.id.navigation_home, R.id.navigation_store, R.id.navigation_service).build();
 
+        // Initialize the Navigation Controller linked to the NavHostFragment in the XML
         navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(binding.navView, navController);
 
+        // Customize the top app bar header with the authenticated user's details
         if (username != null) {
             TextView usernameTextView = findViewById(R.id.usernameTextView);
             if (usernameTextView != null) {
                 usernameTextView.setText("Welcome, " + username + "!");
                 usernameTextView.setTextColor(Color.WHITE);
             }
-
+            // Fetch the verified email address directly from Firebase Auth
             if (FirebaseAuth.getInstance().getCurrentUser() != null) {
                 email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
             }
-
+            // Attach interactions to the profile icon and set up dynamic navigation parameters
             setupProfileIcon();
             setupNavigationWithUsername();
         }
 
+        // Ensure the cart icon is visible on the bottom navigation bar
         navView.getMenu().findItem(R.id.navigation_cart).setVisible(true);
 
+        // Override standard bottom navigation behavior to inject custom logic (like checking cart state)
         navView.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
-
+            // Special case: If the user clicks the Cart tab, verify they actually have items
             if (itemId == R.id.navigation_cart) {
                 fbHelper.getCartItemCount(count -> {
                     if (count == 0) {
+                        // Prevent navigation and show a custom toast if the cart is completely empty
                         LayoutInflater inflater = getLayoutInflater();
-                        View layout = inflater.inflate(R.layout.toast_layout,
-                                (ViewGroup) findViewById(R.id.custom_toast_container));
-
+                        View layout = inflater.inflate(R.layout.toast_layout, (ViewGroup) findViewById(R.id.custom_toast_container));
                         TextView text = layout.findViewById(R.id.toast_text);
                         text.setText("Cart is empty");
                         Toast toast = new Toast(getApplicationContext());
@@ -121,36 +125,34 @@ public class MainActivity extends AppCompatActivity {
                         toast.setView(layout);
                         toast.show();
                     } else {
+                        // Cart has items, allow navigation to the cart fragment
                         navController.navigate(R.id.navigation_cart);
                     }
                 });
+                // Return false because we handle the navigation manually above
                 return false;
             }
 
+            // Standard case: Navigate to the selected tab with optimized backstack behavior
             NavOptions navOptions = new NavOptions.Builder()
-                    .setLaunchSingleTop(true)
+                    .setLaunchSingleTop(true) // Avoid creating multiple copies of the same destination
                     .setRestoreState(false)
                     .setPopUpTo(navController.getGraph().getStartDestinationId(), false, false)
                     .build();
-
             navController.navigate(itemId, null, navOptions);
             return true;
         });
-        //migrateProductsToFirebase();
+        //migrateProductsToFirebase(); // Utility function currently disabled
     }
 
     /**
      * Initializes the listener for the user profile image to trigger the profile popup.
      */
     private void setupProfileIcon() {
+        // Locate the profile icon in the UI and attach a click listener to spawn the dropdown
         ImageView profileIcon = findViewById(R.id.user_profile_image);
         if (profileIcon != null) {
-            profileIcon.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    showProfileDialog();
-                }
-            });
+            profileIcon.setOnClickListener(v -> showProfileDialog());
         }
     }
 
@@ -159,11 +161,12 @@ public class MainActivity extends AppCompatActivity {
      * and redirects them to the WelcomeActivity.
      */
     private void logoutUser() {
+        // Erase locally saved user data so it isn't retrieved on next launch
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         prefs.edit().clear().apply();
-
+        // Disconnect the active session from the Firebase server
         FirebaseAuth.getInstance().signOut();
-
+        // Route back to the unauthenticated landing screen and clear activity history
         Intent intent = new Intent(MainActivity.this, WelcomeActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
@@ -175,8 +178,10 @@ public class MainActivity extends AppCompatActivity {
      * arguments when navigating to particular fragments, such as the service fragment.
      */
     private void setupNavigationWithUsername() {
+        // Listen for screen changes to dynamically pass global data (like username) downwards
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             if (destination.getId() == R.id.navigation_service) {
+                // Prepare a bundle containing the username for the Service fragment to consume
                 Bundle bundle = new Bundle();
                 bundle.putString("USERNAME", username);
             }
@@ -199,60 +204,62 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     public boolean onSupportNavigateUp() {
+        // Ask the NavController to handle the 'back' or 'up' arrow press in the action bar
         return navController.navigateUp() || super.onSupportNavigateUp();
     }
+
     /**
      * Displays a customized profile dropdown using a PopupWindow. Binds user details
      * and provides a logout interaction.
      */
     private void showProfileDialog() {
+        // Prevent duplicate popups if the user rapidly taps the profile icon
         if (profilePopupWindow != null && profilePopupWindow.isShowing()) {
             profilePopupWindow.dismiss();
         }
-
+        // Inflate the custom visual layout designed for the dropdown menu
         View dropdownView = getLayoutInflater().inflate(R.layout.profile_dropdown, null);
         TextView tvUsername = dropdownView.findViewById(R.id.tvDropdownUsername);
         TextView tvEmail = dropdownView.findViewById(R.id.tvDropdownEmail);
         Button btnLogout = dropdownView.findViewById(R.id.btnDropdownLogout);
 
+        // Populate the dropdown with the current user's actual data
         tvUsername.setText(username);
         tvEmail.setText(email != null ? email : "Not available");
 
+        // Instantiate the popup window, allowing it to wrap content and be focusable
         profilePopupWindow = new PopupWindow(dropdownView,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 true
         );
-
+        // Configure styling: transparent background (for rounded corners), shadow elevation, and fade animation
         profilePopupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         profilePopupWindow.setElevation(16f);
         profilePopupWindow.setAnimationStyle(android.R.style.Animation_Dialog);
 
+        // Calculate dynamic positioning relative to the profile icon
         ImageView profileIcon = findViewById(R.id.user_profile_image);
-
-        int xOffset = dpToPx(-60);
-        int yOffset = dpToPx(4);
+        int xOffset = dpToPx(-60); // Shift left to align properly
+        int yOffset = dpToPx(4);   // Shift slightly down
         profilePopupWindow.showAsDropDown(profileIcon, xOffset, yOffset);
 
-        btnLogout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                profilePopupWindow.dismiss();
-                logoutUser();
-            }
+        // Attach the logout sequence to the logout button
+        btnLogout.setOnClickListener(v -> {
+            profilePopupWindow.dismiss();
+            logoutUser();
         });
 
-        dropdownView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
-                    profilePopupWindow.dismiss();
-                    return true;
-                }
-                return false;
+        // Dismiss the popup immediately if the user touches anywhere outside of it
+        dropdownView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_OUTSIDE) {
+                profilePopupWindow.dismiss();
+                return true;
             }
+            return false;
         });
     }
+
     /**
      * Helper utility to convert density-independent pixels (dp) to absolute pixels (px).
      *
@@ -260,6 +267,7 @@ public class MainActivity extends AppCompatActivity {
      * @return The dimension converted to absolute pixels based on the display metrics.
      */
     private int dpToPx(int dp) {
+        // Uses system display metrics to calculate exact screen pixels from abstract DPs
         return (int) TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
@@ -271,14 +279,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // Clear the ViewBinding reference to allow garbage collection
         binding = null;
-
+        // If the activity is closing while the popup is open, force-close it to prevent a WindowLeaked error
         if (profilePopupWindow != null && profilePopupWindow.isShowing()) {
             profilePopupWindow.dismiss();
             profilePopupWindow = null;
         }
     }
-
     /**
      * An internal utility method that bulk uploads default product data to Firestore.
      * Contains predefined definitions of various electronics and accessories.

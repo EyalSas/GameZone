@@ -33,13 +33,10 @@ public class SplashScreenActivity extends AppCompatActivity {
 
     // Background decorative elements
     private ImageView bgCircle1, bgCircle2;
-
     // Text elements displayed sequentially on the screen
     private TextView welcomeText, taglineText, loadingText, versionText;
-
     // Visual indicator showing the user that the app is "loading"
     private LinearProgressIndicator progressBar;
-
     // Main container for the application logo
     private MaterialCardView logoCard;
 
@@ -48,23 +45,17 @@ public class SplashScreenActivity extends AppCompatActivity {
      * resolves layout views, and triggers the initial animation sequence.
      *
      * @param savedInstanceState If the activity is being re-initialized after previously being
-     * shut down then this Bundle contains the data it most recently
-     * supplied. Otherwise, it is null.
+     * shut down then this Bundle contains the data it most recently supplied. Otherwise, it is null.
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Set the user interface layout for this Activity
         setContentView(R.layout.splash_screen);
-
         // Hide the default Action Bar to achieve a full-screen, immersive look
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().hide();
-        }
-
+        if (getSupportActionBar() != null) { getSupportActionBar().hide(); }
         // Bind layout elements to local variables and prepare them for animation
         initializeViews();
-
         // Wait for the layout to finish measuring before calculating and starting animations
         setupAnimations();
     }
@@ -83,7 +74,6 @@ public class SplashScreenActivity extends AppCompatActivity {
         progressBar   = findViewById(R.id.progressBar);
         bgCircle1     = findViewById(R.id.bgCircle1);
         bgCircle2     = findViewById(R.id.bgCircle2);
-
         // Hide textual and progress elements initially to prevent visual flashing.
         // They will be faded in gradually via animations.
         welcomeText.setAlpha(0f);
@@ -104,7 +94,6 @@ public class SplashScreenActivity extends AppCompatActivity {
             public void onGlobalLayout() {
                 // Remove the listener immediately so it doesn't fire repeatedly on subsequent layout passes
                 logoCard.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-
                 // Now that sizes and positions are known, start the first visual sequence
                 startLogoAnimation();
             }
@@ -124,19 +113,16 @@ public class SplashScreenActivity extends AppCompatActivity {
                 ObjectAnimator.ofFloat(logoCard, "rotation", -180f, 0f),    // Spin into place
                 ObjectAnimator.ofFloat(logoCard, "alpha",    0f, 1f)        // Fade in
         );
-
         // Make the logo animation last 1.2 seconds
         logoSet.setDuration(1200);
         // Use an OvershootInterpolator to make the logo "pop" past its final size and settle back
         logoSet.setInterpolator(new OvershootInterpolator(1.2f));
         logoSet.start();
-
         // Queue the subsequent entrance animations with staggered delays
         new Handler().postDelayed(this::animateWelcomeText,  400);   // Starts at 0.4s
         new Handler().postDelayed(this::animateTaglineText,  800);   // Starts at 0.8s
         new Handler().postDelayed(this::animateLoadingSection, 1200);  // Starts at 1.2s
         new Handler().postDelayed(this::animateProgressAndVersion, 1600); // Starts at 1.6s
-
         // Schedule the transition to the next screen once the total timeout is reached
         new Handler().postDelayed(this::navigateToNextActivity, SPLASH_SCREEN_TIMEOUT);
     }
@@ -147,10 +133,8 @@ public class SplashScreenActivity extends AppCompatActivity {
     private void animateWelcomeText() {
         AnimatorSet set = new AnimatorSet();
         set.playTogether(
-                // Fade from invisible to fully visible
-                ObjectAnimator.ofFloat(welcomeText, "alpha",        0f, 1f),
-                // Slide up from 50 pixels below its actual position to its final position (0f)
-                ObjectAnimator.ofFloat(welcomeText, "translationY", 50f, 0f)
+                ObjectAnimator.ofFloat(welcomeText, "alpha",        0f, 1f), // Fade from invisible to fully visible
+                ObjectAnimator.ofFloat(welcomeText, "translationY", 50f, 0f) // Slide up from 50 pixels below
         );
         set.setDuration(800);
         set.setInterpolator(new AccelerateDecelerateInterpolator()); // Smooth start and end
@@ -164,8 +148,7 @@ public class SplashScreenActivity extends AppCompatActivity {
         AnimatorSet set = new AnimatorSet();
         set.playTogether(
                 ObjectAnimator.ofFloat(taglineText, "alpha",  0f, 1f),
-                // Start slightly smaller (80%) and scale to normal size (100%)
-                ObjectAnimator.ofFloat(taglineText, "scaleX", 0.8f, 1f),
+                ObjectAnimator.ofFloat(taglineText, "scaleX", 0.8f, 1f), // Start slightly smaller (80%)
                 ObjectAnimator.ofFloat(taglineText, "scaleY", 0.8f, 1f)
         );
         set.setDuration(600);
@@ -183,7 +166,6 @@ public class SplashScreenActivity extends AppCompatActivity {
         ObjectAnimator textAlpha = ObjectAnimator.ofFloat(loadingText, "alpha", 0f, 1f);
         textAlpha.setDuration(600);
         textAlpha.start();
-
         // Begin the infinite breathing/pulsing animation
         startPulseAnimation(loadingText);
     }
@@ -196,7 +178,6 @@ public class SplashScreenActivity extends AppCompatActivity {
         ObjectAnimator progressAlpha = ObjectAnimator.ofFloat(progressBar, "alpha", 0f, 1f);
         progressAlpha.setDuration(600);
         progressAlpha.start();
-
         // Fade in the text at the bottom displaying the app version
         ObjectAnimator versionAlpha = ObjectAnimator.ofFloat(versionText, "alpha", 0f, 1f);
         versionAlpha.setDuration(600);
@@ -213,19 +194,15 @@ public class SplashScreenActivity extends AppCompatActivity {
         // Define scale animations from 100% to 110% and back to 100%
         ObjectAnimator sx = ObjectAnimator.ofFloat(view, "scaleX", 1f, 1.1f, 1f);
         ObjectAnimator sy = ObjectAnimator.ofFloat(view, "scaleY", 1f, 1.1f, 1f);
-
         // Make one full pulse cycle take 2 seconds
         sx.setDuration(2000);
         sy.setDuration(2000);
-
         // Loop the animation endlessly until the view is destroyed
         sx.setRepeatCount(ObjectAnimator.INFINITE);
         sy.setRepeatCount(ObjectAnimator.INFINITE);
-
         // Ensure smooth transitions back and forth
         sx.setInterpolator(new AccelerateDecelerateInterpolator());
         sy.setInterpolator(new AccelerateDecelerateInterpolator());
-
         sx.start();
         sy.start();
     }
@@ -251,16 +228,12 @@ public class SplashScreenActivity extends AppCompatActivity {
             @Override public void onAnimationStart(android.animation.Animator a) {}
             @Override public void onAnimationCancel(android.animation.Animator a) {}
             @Override public void onAnimationRepeat(android.animation.Animator a) {}
-
-            @Override
-            public void onAnimationEnd(android.animation.Animator a) {
+            @Override public void onAnimationEnd(android.animation.Animator a) {
                 // Prepare to open the next screen
                 Intent intent = new Intent(SplashScreenActivity.this, WelcomeActivity.class);
                 startActivity(intent);
-
                 // Override default Android screen transition with custom fade in/out
                 overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-
                 // Remove Splash Screen from the backstack so the user can't navigate back to it
                 finish();
             }
@@ -278,7 +251,6 @@ public class SplashScreenActivity extends AppCompatActivity {
         if (loadingText != null) loadingText.clearAnimation();
         if (bgCircle1 != null) bgCircle1.clearAnimation();
         if (bgCircle2 != null) bgCircle2.clearAnimation();
-
         super.onDestroy();
     }
 }

@@ -57,16 +57,16 @@ public class ServiceFragment extends Fragment {
      */
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // Inflate the layout specifically for this fragment using ViewBinding
         binding = FragmentServiceBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
-
+        // Securely retrieve the logged-in username from the parent MainActivity
         if (getActivity() != null) {
             username = ((MainActivity) getActivity()).getUsername();
         }
-
+        // Set up the UI elements based on user role and fetch data from Firebase
         initializeUI();
         loadServicesFromDatabase();
-
         return root;
     }
 
@@ -75,42 +75,38 @@ public class ServiceFragment extends Fragment {
      * based on whether the current user is an administrator or a standard user.
      */
     private void initializeUI() {
+        // Map local variables to UI components for quick access
         Button addServiceBtn = binding.btnAddService;
         EditText serviceNameEt = binding.editTextServiceName;
         LinearLayout statsLayout = binding.statsOverviewLayout;
-
+        TextView textrequest=binding.textRequest;
+        // Check if the current user matches the hardcoded admin credentials
         boolean isAdmin = ADMIN_USERNAME.equalsIgnoreCase(username);
 
         if (isAdmin) {
+            // Admins do not submit services or track personal stats, so hide these elements
+            textrequest.setVisibility(View.GONE);
             addServiceBtn.setVisibility(View.GONE);
             serviceNameEt.setVisibility(View.GONE);
             statsLayout.setVisibility(View.GONE);
             binding.servicesListTitle.setText("All User Service Requests (Admin View)");
         } else {
+            // Standard users see the input fields, submit button, and personal stats
             addServiceBtn.setVisibility(View.VISIBLE);
             serviceNameEt.setVisibility(View.VISIBLE);
             statsLayout.setVisibility(View.VISIBLE);
             binding.servicesListTitle.setText("Your Service Requests");
-
+            // Attach the click listener to handle submitting a new service request
             addServiceBtn.setOnClickListener(v -> {
                 String serviceName = serviceNameEt.getText().toString().trim();
                 if (!serviceName.isEmpty()) {
                     addService(serviceName);
-                    serviceNameEt.setText("");
+                    serviceNameEt.setText(""); // Clear the input field after submission
                 } else {
                     Toast.makeText(getContext(), "Please enter a service name", Toast.LENGTH_SHORT).show();
                 }
             });
         }
-    }
-
-    /**
-     * Orchestrates the retrieval of data from the database by calling the specific
-     * methods responsible for updating statistics and loading the list of service items.
-     */
-    private void loadServicesFromDatabase() {
-        updateServiceCounts();
-        loadServiceItems();
     }
 
     /**
@@ -121,20 +117,23 @@ public class ServiceFragment extends Fragment {
      * @param serviceName The name or description of the requested service.
      */
     private void addService(String serviceName) {
+        // Ensure the user is actually authenticated before proceeding
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
+        // Construct the payload to save in Firestore
         Map<String, Object> serviceRequest = new HashMap<>();
         serviceRequest.put("serviceName", serviceName);
         serviceRequest.put("ownerUid", uid);
         serviceRequest.put("ownerUsername", username);
-        serviceRequest.put("status", "waiting");
+        serviceRequest.put("status", "waiting"); // All new requests start as waiting
         serviceRequest.put("timestamp", System.currentTimeMillis());
 
+        // Push the new record to the "services" collection
         FirebaseFirestore.getInstance().collection("services").add(serviceRequest)
                 .addOnSuccessListener(documentReference -> {
+                    // Prevent crashes if the user navigated away before the callback finishes
                     if (!isAdded() || getContext() == null) return;
-
+                    // Trigger a local broadcast to show a system notification about the new request
                     Intent intent = new Intent(getContext(), CartReminderReceiver.class);
                     intent.setAction("NEW_SERVICE_REQUEST");
                     intent.putExtra("message", username + " has requested a new service: " + serviceName);
@@ -142,6 +141,7 @@ public class ServiceFragment extends Fragment {
                     getContext().sendBroadcast(intent);
 
                     Toast.makeText(getContext(), "Service added successfully (Waiting)", Toast.LENGTH_SHORT).show();
+                    // Refresh the view so the user sees their new request immediately
                     loadServicesFromDatabase();
                 })
                 .addOnFailureListener(e -> {
@@ -152,36 +152,47 @@ public class ServiceFragment extends Fragment {
     }
 
     /**
+     * Orchestrates the retrieval of data from the database by calling the specific
+     * methods responsible for updating statistics and loading the list of service items.
+     */
+    private void loadServicesFromDatabase() {
+        // Update the numerical counters at the top (if applicable) and populate the list below
+        updateServiceCounts();
+        loadServiceItems();
+    }
+
+
+    /**
      * Asynchronously fetches the user's service requests from Firestore to calculate
      * the total number of 'waiting' and 'completed' requests, and updates the UI statistic cards.
      * This method bypasses execution if the current user is an admin, as admins do not track personal stats.
      */
     private void updateServiceCounts() {
+        // Admins and unauthenticated users do not have personal statistics to display
         if (ADMIN_USERNAME.equalsIgnoreCase(username) || FirebaseAuth.getInstance().getCurrentUser() == null) {
             return;
         }
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
+        // Query only the current user's documents
         FirebaseFirestore.getInstance().collection("services")
                 .whereEqualTo("ownerUid", uid)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     if (!isAdded() || getContext() == null) return;
-
                     int waiting = 0;
                     int completed = 0;
-
+                    // Iterate through the results and tally the statuses
                     for (QueryDocumentSnapshot doc : querySnapshot) {
                         String status = doc.getString("status");
                         if ("waiting".equals(status)) waiting++;
                         if ("completed".equals(status)) completed++;
                     }
-
+                    // Extract the text views embedded inside the statistical card layouts
                     View waitingCard = binding.cardWaiting.getRoot();
                     View completedCard = binding.cardCompleted.getRoot();
                     TextView waitingCount = waitingCard.findViewById(R.id.waitingCount);
                     TextView completedCount = completedCard.findViewById(R.id.completedCount);
-
+                    // Apply the final tallied numbers to the UI
                     waitingCount.setText(String.valueOf(waiting));
                     completedCount.setText(String.valueOf(completed));
                 });
@@ -193,30 +204,33 @@ public class ServiceFragment extends Fragment {
      */
     private void loadServiceItems() {
         LinearLayout servicesContainer = binding.servicesContainer;
+        // Clear any existing cards to prevent duplicates when reloading
         servicesContainer.removeAllViews();
-
         boolean isAdmin = ADMIN_USERNAME.equalsIgnoreCase(username);
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         Query query;
-
+        // Determine the query scope based on user role
         if (isAdmin) {
+            // Admins see everything, oldest to newest
             query = db.collection("services").orderBy("timestamp", Query.Direction.ASCENDING);
         } else {
+            // Regular users only see items attached to their specific UID
             if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
             String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            query = db.collection("services").whereEqualTo("ownerUid", uid);
+            query = db.collection("services").whereEqualTo("ownerUid", uid).orderBy("timestamp", Query.Direction.ASCENDING);
         }
 
         query.get().addOnSuccessListener(querySnapshot -> {
             if (!isAdded() || getContext() == null) return;
+            // Double clear just in case asynchronous timing caused an overlap
             servicesContainer.removeAllViews();
-
+            // Loop through all fetched documents and generate visual cards for each
             for (QueryDocumentSnapshot doc : querySnapshot) {
                 String docId = doc.getId();
                 String serviceName = doc.getString("serviceName");
                 String status = doc.getString("status");
                 String ownerUsername = doc.getString("ownerUsername");
-
+                // Programmatically build the view block and attach it to the scrollable container
                 View serviceCard = createServiceCard(docId, serviceName, status, ownerUsername, isAdmin);
                 servicesContainer.addView(serviceCard);
             }
@@ -234,6 +248,7 @@ public class ServiceFragment extends Fragment {
      * @return The calculated dimension in pixels.
      */
     private int dpToPx(int dp) {
+        // Uses the device's exact display metrics to scale layout sizes appropriately
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }
 
@@ -251,7 +266,7 @@ public class ServiceFragment extends Fragment {
      */
     private View createServiceCard(String docId, String serviceName, String status, String ownerUsername, boolean isAdmin) {
         Context context = getContext();
-
+        // Setup the root container for the individual card
         LinearLayout rootLayout = new LinearLayout(context);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -259,25 +274,25 @@ public class ServiceFragment extends Fragment {
         rootLayout.setLayoutParams(layoutParams);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
         rootLayout.setPadding(dpToPx(16), dpToPx(16), dpToPx(16), dpToPx(16));
-        rootLayout.setBackgroundColor(Color.parseColor("#2C2C2C"));
-
+        rootLayout.setBackgroundColor(Color.parseColor("#2C2C2C")); // Dark gray background
+        // Fallbacks for corrupt or missing data
         if (serviceName == null) serviceName = "Unknown Service";
         if (status == null) status = "unknown";
-
+        // Determine the text color based on the status string
         int statusColor = Color.parseColor("#FFFFFF");
         if ("completed".equalsIgnoreCase(status)) {
-            statusColor = Color.parseColor("#4CAF50");
+            statusColor = Color.parseColor("#4CAF50"); // Green
         } else if ("waiting".equalsIgnoreCase(status)) {
-            statusColor = Color.parseColor("#FF6347");
+            statusColor = Color.parseColor("#FF6347"); //  Red
         }
-
+        // Build and add the service name header(title)
         TextView nameTextView = new TextView(context);
         nameTextView.setText(serviceName);
         nameTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         nameTextView.setTextColor(Color.WHITE);
         nameTextView.setTypeface(null, android.graphics.Typeface.BOLD);
         rootLayout.addView(nameTextView);
-
+        // If admin, display who requested it so they know who to assist
         if (isAdmin) {
             TextView ownerTextView = new TextView(context);
             ownerTextView.setText("Requested by: " + (ownerUsername != null ? ownerUsername : "Unknown"));
@@ -285,48 +300,46 @@ public class ServiceFragment extends Fragment {
             ownerTextView.setTextColor(Color.parseColor("#AAAAAA"));
             rootLayout.addView(ownerTextView);
         }
-
+        // Create a horizontal row to hold the status label and potentially the admin button
         LinearLayout statusRow = new LinearLayout(context);
         statusRow.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         rowParams.topMargin = dpToPx(8);
         statusRow.setLayoutParams(rowParams);
-
+        // Build the "Status:" prefix text
         TextView statusLabel = new TextView(context);
         statusLabel.setText("Status: ");
         statusLabel.setTextColor(Color.parseColor("#999999"));
         statusLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         statusRow.addView(statusLabel);
-
+        // Build the actual status value (e.g., WAITING or COMPLETED) colored accordingly
         TextView statusTextView = new TextView(context);
         statusTextView.setText(status.toUpperCase());
         statusTextView.setTextColor(statusColor);
         statusTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         statusTextView.setTypeface(null, android.graphics.Typeface.BOLD);
         statusRow.addView(statusTextView);
-
+        // If an admin is viewing a pending request, inject the action button
         if (isAdmin && !"completed".equalsIgnoreCase(status)) {
             Button adminButton = new Button(context);
             adminButton.setText("Complete");
             adminButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             adminButton.setBackgroundColor(Color.parseColor("#4CAF50"));
             adminButton.setTextColor(Color.WHITE);
-
-            LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
-                    0, dpToPx(35));
+            // Push the button to the right side using layout weight
+            LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(0, dpToPx(35));
             buttonParams.leftMargin = dpToPx(16);
             buttonParams.weight = 1.0f;
             adminButton.setLayoutParams(buttonParams);
-
+            // Capture final variables for use inside the lambda callback
             final String finalServiceName = serviceName;
             final String finalOwnerUsername = ownerUsername;
-
+            // Execute the status update when clicked
             adminButton.setOnClickListener(v -> handleAdminAction(docId, finalServiceName, finalOwnerUsername));
-
             statusRow.addView(adminButton);
         }
-
+        // Finalize the layout hierarchy
         rootLayout.addView(statusRow);
         return rootLayout;
     }
@@ -340,10 +353,12 @@ public class ServiceFragment extends Fragment {
      * @param ownerUsername The name of the requesting user (used for user feedback).
      */
     private void handleAdminAction(String docId, String serviceName, String ownerUsername) {
+        // Target the specific document in Firestore and update just the "status" field
         FirebaseFirestore.getInstance().collection("services").document(docId)
                 .update("status", "completed")
                 .addOnSuccessListener(aVoid -> {
                     if (!isAdded() || getContext() == null) return;
+                    // Automatically refresh the UI to show the new green "COMPLETED" status
                     loadServicesFromDatabase();
                     Toast.makeText(getContext(), serviceName + " status set to completed for " + ownerUsername, Toast.LENGTH_SHORT).show();
                 })
@@ -361,6 +376,7 @@ public class ServiceFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        // If returning to this tab, fetch the latest data to avoid stale views
         if (username != null) {
             loadServicesFromDatabase();
         }
@@ -373,6 +389,7 @@ public class ServiceFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        // Nullify the binding reference allowing the garbage collector to free up the view memory
         binding = null;
     }
 }
